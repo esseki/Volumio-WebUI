@@ -3,6 +3,7 @@
 /* Dont' change anything before this line */
 define('REWRITE_RULE_IDENTIFIER', 'artwork');
 define('PATH_TO_MPD_LIBRARY', '/var/lib/mpd');
+define('ARTWORK_APC_TTL', 3600);
 /* Dont' change anything after this line */
 
 
@@ -154,6 +155,7 @@ class artworkManager {
 
     $this->rewriteRuleIdentifier = REWRITE_RULE_IDENTIFIER;
     $this->pathToMpdLibrary = PATH_TO_MPD_LIBRARY;
+    $this->artworkCacheTTL = ARTWORK_APC_TTL;
   }
   
   // Retrieve the linux path to the file played
@@ -263,7 +265,7 @@ class artworkManager {
   }
 
   private function storeArtworkInCache() {
-    $this->cache->storeInCache($this->pathToSong, $this->artwork->getImageBlob(), 3600);
+    $this->cache->storeInCache($this->pathToSong, $this->artwork->getImageBlob(), $this->artworkCacheTTL);
     $this->debug->addDebugTrace('Stored artwork into cache', 'last', 'now');
   }
 
@@ -287,7 +289,7 @@ class artworkManager {
       $this->retrievePathToSong();
       $this->debug->addDebugTrace('Script bootstrap', 'beginning', 'now');
 
-      // serach for an artwork in cache
+      // search for an artwork in cache
       $this->getArtworkFromCache();
       // search for a file Folder.jpg in the folder containing the song being played
       $this->searchArtworkInAFolder($this->pathToSong);
