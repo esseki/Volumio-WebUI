@@ -71,13 +71,14 @@ session_write_close();
 // -----  check and compare GUI state with Backend state  ----  //
 
 			$curTrack = getTrackInfo($mpd,$status['song']);
-                        if($_SERVER['HTTPS']!=='') {
-                        $protocol = 'https';
-                        } else {
-                        $protocol = 'http';
-                        }
-                        //$status['currentartwork'] = $protocol.'://'.$_SERVER['HTTP_HOST'].'/artwork/music/'.rawurlencode(pathinfo($curTrack[0]['file'],PATHINFO_DIRNAME)).'/Folder.jpg';
-                        $status['currentartwork'] = $protocol.'://'.$_SERVER['HTTP_HOST'].'/artwork/music/'.rawurlencode($curTrack[0]['file']);
+            
+            // Add URL to the song played to retrieve artwork
+            if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') {
+                $protocol = 'https';
+            } else {
+                $protocol = 'http';
+            }
+            $status['currentartwork'] = $protocol.'://'.$_SERVER['HTTP_HOST'].'/artwork/music/'.rawurlencode($curTrack[0]['file']);
 
 			if (isset($curTrack[0]['Title'])) {
 			$status['currentartist'] = $curTrack[0]['Artist'];
