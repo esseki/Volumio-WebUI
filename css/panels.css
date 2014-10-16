@@ -311,6 +311,86 @@ a.btn-cmd {
 .btn-cmd:focus {
 	outline: none;
 }
+.artwork {
+	margin: auto;
+	width: 300px;
+	height: 300px;
+	position: relative;
+	-webkit-perspective: 600px;
+	-moz-perspective: 600px;
+	perspective: 600px;
+}
+/* -- make sure to declare a default for every property that you want animated -- */
+/* -- general styles, including Y axis rotation -- */
+.artwork .front {
+	float: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 900;
+	width: 280px;
+	height: 280px;
+	border: 8px solid #273B4F;
+	-webkit-transform: rotateX(0deg) rotateY(0deg);
+	-moz-transform: rotateX(0deg) rotateY(0deg);
+	transform: rotateX(0deg) rotateY(0deg);
+    -webkit-transform-style: preserve-3d;
+	-moz-transform-style: preserve-3d;
+	transform-style: preserve-3d;
+    -webkit-backface-visibility: hidden;
+	-moz-backface-visibility: hidden;
+	backface-visibility: hidden;
+    /* -- transition is the magic sauce for animation -- */
+	-webkit-transition: all .6s ease-in-out;
+	transition: all .6s ease-in-out;
+}
+.artwork.flip .front {
+	z-index: 900;
+    -webkit-transform: rotateY(180deg);
+	-moz-transform: rotateY(180deg);
+	transform: rotateY(180deg);
+}
+.artwork .back {
+	float: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 800;
+	width: 280px;
+	height: 280px;
+	border: 10px solid #000;
+	text-shadow: 1px 1px 1px rgba(0,0,0,0.6);
+    -webkit-transform: rotateY(-180deg);
+	-moz-transform: rotateY(-179deg); /* setting to 180 causes an unnatural-looking half-flip */
+	transform: rotateY(-179deg);
+    -webkit-transform-style: preserve-3d;
+	-moz-transform-style: preserve-3d;
+	transform-style: preserve-3d;
+    -webkit-backface-visibility: hidden;
+	-moz-backface-visibility: hidden;
+	backface-visibility: hidden;
+    /* -- transition is the magic sauce for animation -- */
+	-webkit-transition: all .6s ease-in-out;
+	transition: all .6s ease-in-out;
+}
+.artwork.flip .back {
+	z-index: 1000;
+	 -webkit-transform: rotateX(0deg) rotateY(0deg);
+	 -moz-transform: rotateX(0deg) rotateY(0deg);
+	transform: rotateX(0deg) rotateY(0deg);
+}
+/* -- cosmetics -- */
+.circle div {
+     border-radius: 150px;  
+}
+div.front {
+     background-image:url('http://i.telegraph.co.uk/multimedia/archive/02848/wellcome-photo-13__2848386k.jpg');
+     background-size: contain; 
+}
+div.back {
+     background-image:url('http://i.stack.imgur.com/Sv4BC.png');
+     background-size: contain; 
+}
 
 
 

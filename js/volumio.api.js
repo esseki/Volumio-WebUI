@@ -433,7 +433,7 @@ function updateGUI(json){
     $('#currentsong').html(json['currentsong']);
     $('#currentalbum').html(json['currentalbum']);
     // render album artwork
-     $('#currentartwork').attr('src', json['currentartwork']);
+    $("#currentartwork .front").css('background-image', 'url('+json['currentartwork']+')');
     if (json['repeat'] == 1) {
         $('#repeat').addClass('btn-primary');
     } else {
