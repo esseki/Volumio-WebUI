@@ -432,6 +432,8 @@ function updateGUI(json){
     $('#currentartist').html(json['currentartist']);
     $('#currentsong').html(json['currentsong']);
     $('#currentalbum').html(json['currentalbum']);
+    // render album artwork
+     $('#currentartwork').attr('src', json['currentartwork']);
     if (json['repeat'] == 1) {
         $('#repeat').addClass('btn-primary');
     } else {
