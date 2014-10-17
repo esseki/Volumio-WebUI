@@ -311,6 +311,14 @@ a.btn-cmd {
 .btn-cmd:focus {
 	outline: none;
 }
+/* Credit for artwork animation and placeholder :
+   - animation 
+     copyright : Chris Ruppel (http://chrisruppel.com/) 
+     Source : http://css3playground.com/3d-flip-cards/
+   - placeholder
+     Licence : CC0 Public Domain (http://pixabay.com/fr/service/terms/#download_terms) 
+     Source : http://pixabay.com/fr/musique-cd-dvd-note-audio-disque-27787/
+*/
 .artwork {
 	margin: auto;
 	width: 300px;
