@@ -358,7 +358,7 @@ a.btn-cmd {
 	z-index: 800;
 	width: 280px;
 	height: 280px;
-	border: 10px solid #000;
+	border: 0px solid #000;
 	text-shadow: 1px 1px 1px rgba(0,0,0,0.6);
     -webkit-transform: rotateY(-180deg);
 	-moz-transform: rotateY(-179deg); /* setting to 180 causes an unnatural-looking half-flip */
