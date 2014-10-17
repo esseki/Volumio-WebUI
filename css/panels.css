@@ -330,7 +330,7 @@ a.btn-cmd {
 	z-index: 900;
 	width: 280px;
 	height: 280px;
-	border: 8px solid #273B4F;
+	border: 0px solid #273B4F;
 	-webkit-transform: rotateX(0deg) rotateY(0deg);
 	-moz-transform: rotateX(0deg) rotateY(0deg);
 	transform: rotateX(0deg) rotateY(0deg);
