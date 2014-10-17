@@ -384,7 +384,7 @@ a.btn-cmd {
      border-radius: 150px;  
 }
 div.front {
-     background-image:url('http://i.telegraph.co.uk/multimedia/archive/02848/wellcome-photo-13__2848386k.jpg');
+     background-image:url('/images/artwork/placeholder.png');
      background-size: contain; 
 }
 div.back {
