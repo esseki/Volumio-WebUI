@@ -432,8 +432,15 @@ function updateGUI(json){
     $('#currentartist').html(json['currentartist']);
     $('#currentsong').html(json['currentsong']);
     $('#currentalbum').html(json['currentalbum']);
-    // render album artwork
-    $("#currentartwork .front").css('background-image', 'url('+json['currentartwork']+')');
+    // render album artwork with a nice animation
+    if ($('#currentartwork').hasClass('flip')) {
+        $("#currentartwork .front").css('background-image', 'url('+json['currentartwork']+')');
+        $('#currentartwork').removeClass('flip');
+    }
+    else {
+        $("#currentartwork .back").css('background-image', 'url('+json['currentartwork']+')');
+        $('#currentartwork').addClass('flip'); 
+    }
     if (json['repeat'] == 1) {
         $('#repeat').addClass('btn-primary');
     } else {
