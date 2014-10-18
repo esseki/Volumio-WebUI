@@ -1,5 +1,21 @@
 <?php
 
+/***********************************
+
+   GET PARAMETERS ACCEPTED :
+    - mode :
+       * 'cover' : look for a 'Folder.jpg' file in the folder of the song passed to the script
+       * 'song' : look for an artwork in the metadata of the song passed to the script
+       * 'folder' : look for an artwork in the metadata of all the songs stored in the folder of the song passed to the script
+       * novalue : try 'cover', if fail then try 'song', if fail then try 'folder'
+    - cache :
+       * 'off' : don't store and restore in APC the artworks of the last songs passed to the script
+       * novalue : store and restore in APC the artworks of the last songs passed to the script
+
+  ie : http://volumio.local/artwork/music/NAS%2FMusic%20Tib%2F2080%2FThe%20Backup%20-%20EP%2FFolder.jpg?mode=folder&cache=off
+  
+***********************************/
+
 /* Dont' change anything before this line */
 define('REWRITE_RULE_IDENTIFIER', 'artwork');
 define('PATH_TO_MPD_LIBRARY', '/var/lib/mpd');
@@ -33,8 +49,7 @@ class debug {
   public function indent($bool) {
     if ($bool === true) {
       $this->indent .= '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-    }
-    else {
+    } else {
       $this->indent = substr($this->indent, 0, -30);
     }
   }
@@ -43,8 +58,7 @@ class debug {
     if ($this->isDebug === true) {
       if ($start === false and $finish === false) {
         $this->debugTrace .= $this->indent.$trace.'</br>';
-      }
-      else {
+      } else {
         $begin = 0;
         $end = 0;
         if ($start === 'beginning') {
@@ -81,9 +95,15 @@ class cacheManager {
     $this->isCacheActivated = (extension_loaded('apc') && ini_get('apc.enabled'))? true : false;
   }
 
+  public function disable() {
+    $this->isCacheActivated = false;
+  }
+
   public function storeInCache($key, $data, $duration) {
     if($this->isCacheActivated === true) {
       apc_add(base64_encode($key), base64_encode($data), $duration);
+    } else {
+      throw new Exception('Cache is disabled');
     }
   }
 
@@ -91,8 +111,14 @@ class cacheManager {
     $data = false;
     if($this->isCacheActivated === true) {
       $data = apc_fetch(base64_encode($key));
-    } 
-    return ($data !== false)? base64_decode($data) : false; 
+      if ($data !== false) { 
+        return base64_decode($data);
+      } else {
+        throw new Exception('No data found in cache');
+      } 
+    } else {
+      throw new Exception('Cache is disabled');
+    }
   } 
 }
 
@@ -138,6 +164,7 @@ class imageManager {
 
 class artworkManager {  
   public $debug;
+  private $mode;
   private $pathToSong;
   private $songPlayed;
   private $id3TagManager;
@@ -147,6 +174,7 @@ class artworkManager {
   
   function __construct() {
     $this->debug = new debug();
+    $this->mode = null;
     $this->songPlayed = null;
     $this->pathToSong = null;
     $this->id3TagManager = null;
@@ -158,27 +186,58 @@ class artworkManager {
     $this->artworkCacheTTL = ARTWORK_APC_TTL;
   }
   
-  // Retrieve the linux path to the file played
+  // Define the way the script will look for artworks
+  public function setMode($mode) {
+    switch ($mode) {
+      // Search for a file "Folder.jpg" in the folder containing the song php
+      case 'cover':
+        $this->debug->addDebugTrace('Mode set to : cover', false, false);
+        $this->mode = 'cover';
+        break;
+      // Search for an artwork in the metadata of the song passed to the script  
+      case 'song':
+        $this->debug->addDebugTrace('Mode set to : song', false, false);
+        $this->mode = 'song';
+        break;
+      // Search for an artwork in all the songs contained in the folder containing the song passed to the script
+      case 'folder':
+        $this->debug->addDebugTrace('Mode set to : folder', false, false);
+        $this->mode = 'folder';
+      default:
+        $this->mode = 'all';
+    }
+  }
+  
+  // Disable cache
+  public function disableCache() {
+    $this->cache->disable();
+    $this->debug->addDebugTrace('Cache disabled', false, false);
+  }
+
+  // Retrieve the linux path to the file passed to the script
   private function retrievePathToSong() {
     if (is_null($this->pathToSong)) {
-      $this->pathToSong = rawurldecode($_SERVER["REQUEST_URI"]);
+      // remove the query string if any
+      $url = parse_url(rawurldecode($_SERVER["REQUEST_URI"]), PHP_URL_PATH);
       // remove the rewrite rule idenitifer to retrieve the path
-      $this->pathToSong = str_ireplace('/'.$this->rewriteRuleIdentifier, '', $this->pathToSong);
+      $this->pathToSong = str_ireplace('/'.$this->rewriteRuleIdentifier, '', $url);
       $pathA = pathinfo($this->pathToSong);
       $this->pathToSong = $pathA["dirname"].'/';
       // if a song is actually being played we store it
       if (strtolower($pathA['extension']) !== 'jpg' and strtolower($pathA['extension']) !== 'jpeg' and strtolower($pathA['extension']) !== 'png') {
         $this->songPlayed = $pathA["basename"];
+        $this->debug->addDebugTrace('songPlayed set to :'.$this->songPlayed, false, false);
       }
       if (is_dir($this->pathToMpdLibrary.$this->pathToSong)) {
         $this->pathToSong = $this->pathToMpdLibrary.$this->pathToSong;
+        $this->debug->addDebugTrace('pathToSong set to :'.$this->pathToSong, false, false);
       } else {
         throw new Exception('No folder found');
       }
     }
   }
   
-  // Set the linux path to the file played (for debug purpose)
+  // Set the linux path to the file passed to the script (for debug purpose)
   public function setPathToSong($path) {
     $this->pathToSong = $path;
   }
@@ -208,8 +267,7 @@ class artworkManager {
             // if an image filename is "cover" or "folder" we use this image
             if (strtolower($pathA['filename']) == 'cover' or strtolower($pathA['filename']) == 'folder') {
               $artworkFileName = $file;
-            }
-            elseif ($artworkFileName === '') {
+            } elseif ($artworkFileName === '') {
               $artworkFileName = $file;
             }
           }
@@ -222,8 +280,7 @@ class artworkManager {
       $this->debug->addDebugTrace('Retrieve "'.$artworkFileName.'"', 'last', 'now');
       $this->debug->indent(false);
       throw new Exception('Artwork found in folder');
-    }
-    else {
+    } else {
       $this->debug->addDebugTrace('No file found', 'last', 'now');
       $this->debug->indent(false);
     }
@@ -265,22 +322,29 @@ class artworkManager {
   }
 
   private function storeArtworkInCache() {
-    $this->cache->storeInCache($this->pathToSong, $this->artwork->getImageBlob(), $this->artworkCacheTTL);
-    $this->debug->addDebugTrace('Stored artwork into cache', 'last', 'now');
+    try {
+      $this->cache->storeInCache($this->pathToSong, $this->artwork->getImageBlob(), $this->artworkCacheTTL);
+      $this->debug->addDebugTrace('Store artwork into cache', 'last', 'now');
+    } catch (Exception $e) {}
   }
 
   private function getArtworkFromCache() {
-    $this->debug->addDebugTrace('Search for artwork in cache', false, false);
-    $this->debug->indent(true);
-    $artworkBinary = $this->cache->getFromCache($this->pathToSong);
-    if ($artworkBinary !== false) {
+    try {
+      $artworkBinary = $this->cache->getFromCache($this->pathToSong);
+      $this->debug->addDebugTrace('Search for artwork in cache', false, false);
+      $this->debug->indent(true);
       $this->artwork->loadFromBinary($artworkBinary);
       $this->debug->addDebugTrace('Retrieve artwork from cache', 'last', 'now');
       $this->debug->indent(false);
       throw new Exception('Artwork found in cache');
-    } else {
-      $this->debug->addDebugTrace('No artwork found in cache', 'last', 'now');
-      $this->debug->indent(false);
+    } 
+    catch (Exception $e) {
+      if ($e->getMessage() === 'Artwork found in cache') {
+        throw $e;
+      } elseif ($e->getMessage() === 'No data found in cache') {
+        $this->debug->addDebugTrace('No artwork found in cache', 'last', 'now');
+        $this->debug->indent(false);
+      }
     }
   } 
 
@@ -291,22 +355,31 @@ class artworkManager {
 
       // search for an artwork in cache
       $this->getArtworkFromCache();
-      // search for a file Folder.jpg in the folder containing the song being played
-      $this->searchArtworkInAFolder($this->pathToSong);
-      // else search for an artwork in the song played
-      if (!is_null($this->songPlayed)) {
-        $this->searchArtworkInAFile($this->pathToSong.$this->songPlayed);
+      // search for a file Folder.jpg in the folder containing the song being passed to the script
+      if ($this->mode === 'cover' or $this->mode === 'all') {
+        $this->searchArtworkInAFolder($this->pathToSong);
       }
-      else {
-        $this->debug->addDebugTrace('No song played : skipped', false, false);
+      // else search for an artwork in the song passed to the script
+      if ($this->mode === 'song' or $this->mode === 'all') {
+        if (!is_null($this->songPlayed)) {
+          $this->searchArtworkInAFile($this->pathToSong.$this->songPlayed);
+        } else {
+          $this->debug->addDebugTrace('No song played : skipped', false, false);
+        }
+      }  
+      // else browse all the songs contained in the folder containing the song passed to the script
+      if ($this->mode === 'folder' or $this->mode === 'all') {
+        $this->browseSongsInFolder($this->pathToSong);
       }
-      // else browse all the songs contained in the folder containing the song played 
-      $this->browseSongsInFolder($this->pathToSong);
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+      // If artwork has been found in cache we don't write it into the cache again
+      if ($e->getMessage() !== 'Artwork found in cache') {
+        $this->storeArtworkInCache();
+      }
+    }
 
     // set the artwork image format to jpg
     $this->artwork->setImageFormat('jpg');
-    $this->storeArtworkInCache();
     if ($this->debug->isDebug() === false) {
       $this->artwork->displayImage();
     }
@@ -319,6 +392,10 @@ class artworkManager {
 
 $am = new artworkManager();
 //$am->debug->turnOn(true);
-//$am->setPathToSong('/home/volumio/PHP/');
+$mode = (isset($_GET['mode']))? $_GET['mode'] : '';
+if (isset($_GET['cache']) and $_GET['cache']==='off') {
+  $am->disableCache();
+}
+$am->setMode($mode);
 $am->process();
 
