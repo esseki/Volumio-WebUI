@@ -20,6 +20,7 @@
 define('REWRITE_RULE_IDENTIFIER', 'artwork');
 define('PATH_TO_MPD_LIBRARY', '/var/lib/mpd');
 define('ARTWORK_APC_TTL', 3600);
+define('PLACEHOLDER_PATH', '/var/www/images/artwork/placeholder.png');
 /* Dont' change anything after this line */
 
 
@@ -214,6 +215,18 @@ class artworkManager {
     $this->debug->addDebugTrace('Cache disabled', false, false);
   }
 
+  private function isASong($filename) {
+    $pathA = pathinfo($filename);
+    if (isset($pathA['extension'])) {
+      $pathA['extension'] = strtolower($pathA['extension']);
+      if ($pathA['extension'] === 'mp3' or $pathA['extension'] === 'm4a' or $pathA['extension'] === 'wav') {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+
   // Retrieve the linux path to the file passed to the script
   private function retrievePathToSong() {
     if (is_null($this->pathToSong)) {
@@ -224,8 +237,8 @@ class artworkManager {
       $pathA = pathinfo($this->pathToSong);
       $this->pathToSong = $pathA["dirname"].'/';
       // if a song is actually being played we store it
-      if (strtolower($pathA['extension']) !== 'jpg' and strtolower($pathA['extension']) !== 'jpeg' and strtolower($pathA['extension']) !== 'png') {
-        $this->songPlayed = $pathA["basename"];
+      if ($this->isASong($pathA['basename'])) {
+        $this->songPlayed = $pathA['basename'];
         $this->debug->addDebugTrace('songPlayed set to :'.$this->songPlayed, false, false);
       }
       if (is_dir($this->pathToMpdLibrary.$this->pathToSong)) {
@@ -234,7 +247,7 @@ class artworkManager {
       } else {
         throw new Exception('No folder found');
       }
-    }
+    } 
   }
   
   // Set the linux path to the file passed to the script (for debug purpose)
@@ -255,7 +268,7 @@ class artworkManager {
   
   // find the artwork if present as an image file in the folder containing the album
   private function searchArtworkInAFolder($pathToFolder) {
-    $this->debug->addDebugTrace('Browse "'.$pathToFolder.'" with scandir for "Folder.jpg"', false, false);
+    $this->debug->addDebugTrace('Browse "'.$pathToFolder.'" for "Folder.jpg"', false, false);
     $this->debug->indent(true);
     $artworkFileName = null;
     if ($filesA = scandir($pathToFolder)) {
@@ -288,17 +301,25 @@ class artworkManager {
 
   // find the artwork in a music file ID3 tag 
   private function searchArtworkInAFile($pathToFile) {
-    $this->debug->addDebugTrace('Search for artwork in "'.$pathToFile.'"', false, false);
+    $this->debug->addDebugTrace('Browse "'.$pathToFile.'" for artwork', false, false);
     $this->debug->indent(true);
-    $getID3 = $this->getId3TagManager();
-    $ThisFileInfo = $this->getId3TagManager()->analyze($pathToFile);
-    $this->debug->addDebugTrace('Analyse "'.$pathToFile.'"', 'last', 'now');
-    getid3_lib::CopyTagsToComments($ThisFileInfo);
-    if (isset($ThisFileInfo['comments']['picture'][0])) {
-      $this->debug->addDebugTrace('Retrieve artwork "'.$pathToFile.'"', 'last', 'now');
+    if ($this->isASong($pathToFile)) {
+      $this->debug->addDebugTrace('Search for artwork in "'.$pathToFile.'"', false, false);
+      $this->debug->indent(true);
+      $getID3 = $this->getId3TagManager();
+      $ThisFileInfo = $this->getId3TagManager()->analyze($pathToFile);
+      $this->debug->addDebugTrace('Analyse "'.$pathToFile.'"', 'last', 'now');
+      getid3_lib::CopyTagsToComments($ThisFileInfo);
+      if (isset($ThisFileInfo['comments']['picture'][0])) {
+        $this->debug->addDebugTrace('Retrieve artwork "'.$pathToFile.'"', 'last', 'now');
+        $this->debug->indent(false);
+        $this->debug->indent(false);
+        $this->artwork->loadFromBinary($ThisFileInfo['comments']['picture'][0]['data']);
+        throw new Exception('Artwork found in song');
+      }
       $this->debug->indent(false);
-      $this->artwork->loadFromBinary($ThisFileInfo['comments']['picture'][0]['data']);
-      throw new Exception('Artwork found in song');
+    } else {
+      $this->debug->addDebugTrace('Not a song file : skipped', false, false);
     }
     $this->debug->indent(false);
   }
@@ -348,6 +369,17 @@ class artworkManager {
     }
   } 
 
+  private function getPlaceholder() {
+    if (is_file(PLACEHOLDER_PATH)) {
+      $this->artwork->loadFromFile(PLACEHOLDER_PATH);
+      $this->debug->addDebugTrace('Placeholder found at : '.PLACEHOLDER_PATH, false, false);
+      throw new Exception('Paceholder found');
+    }
+    else {
+      $this->debug->addDebugTrace('No placeholder found', false, false);
+    }
+  }
+
   public function process() {
     try {
       $this->retrievePathToSong();
@@ -361,16 +393,14 @@ class artworkManager {
       }
       // else search for an artwork in the song passed to the script
       if ($this->mode === 'song' or $this->mode === 'all') {
-        if (!is_null($this->songPlayed)) {
-          $this->searchArtworkInAFile($this->pathToSong.$this->songPlayed);
-        } else {
-          $this->debug->addDebugTrace('No song played : skipped', false, false);
-        }
+        $this->searchArtworkInAFile($this->pathToSong.$this->songPlayed);
       }  
       // else browse all the songs contained in the folder containing the song passed to the script
       if ($this->mode === 'folder' or $this->mode === 'all') {
         $this->browseSongsInFolder($this->pathToSong);
       }
+      // if no artwork has been found, display a placeholder
+      $this->getPlaceholder();
     } catch (Exception $e) {
       // If artwork has been found in cache we don't write it into the cache again
       if ($e->getMessage() !== 'Artwork found in cache') {
