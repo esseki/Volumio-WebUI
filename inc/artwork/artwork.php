@@ -126,26 +126,36 @@ class cacheManager {
 class imageManager {
   private $image;
   private $imageType;
+  private $imageBlob;
 
   function __construct() {
     $this->image = new Imagick();
     $this->imageType = null;
+    $this->imageBlob = null;
   }
 
   public function getImageBlob() {
     try {
-      return $this->image->getImageBlob();
+      if (is_null($this->imageBlob)) {
+        $this->imageBlob = $this->image->getImageBlob();
+      }   
+      return $this->imageBlob;
+    } catch (Exception $e) {}
+  }
+
+  public function loadFromBinary($binary) {
+    try {
+      $this->imageBlob = $binary;
+      $this->image->readImageBlob($this->imageBlob);
+      // set the artwork image format to jpg
+      $this->image->setImageFormat('jpg');
     } catch (Exception $e) {}
   }
 
   public function loadFromFile($fileName) {
     try {
-      $this->image->readImage($fileName);
+      $this->loadFromBinary(file_get_contents($fileName));
     } catch (Exception $e) {}
-  }
-
-  public function loadFromBinary($binary) {
-    $this->image->readImageBlob($binary);
   }
 
   public function setImageFormat($format) {
@@ -158,7 +168,7 @@ class imageManager {
   public function displayImage() {
     try {
       header('Content-Type: '.$this->imageType);
-      echo $this->image;
+      echo $this->imageBlob;
     } catch (Exception $e) {}
   }
 }
@@ -301,10 +311,10 @@ class artworkManager {
 
   // find the artwork in a music file ID3 tag 
   private function searchArtworkInAFile($pathToFile) {
-    $this->debug->addDebugTrace('Browse "'.$pathToFile.'" for artwork', false, false);
+    $this->debug->addDebugTrace('Browse "'.$pathToFile.'" for artwork', 'last', 'now');
     $this->debug->indent(true);
     if ($this->isASong($pathToFile)) {
-      $this->debug->addDebugTrace('Search for artwork in "'.$pathToFile.'"', false, false);
+      $this->debug->addDebugTrace('Search for artwork in "'.$pathToFile.'"', 'last', 'now');
       $this->debug->indent(true);
       $getID3 = $this->getId3TagManager();
       $ThisFileInfo = $this->getId3TagManager()->analyze($pathToFile);
@@ -319,7 +329,7 @@ class artworkManager {
       }
       $this->debug->indent(false);
     } else {
-      $this->debug->addDebugTrace('Not a song file : skipped', false, false);
+      $this->debug->addDebugTrace('Not a song file : skipped', 'last', 'now');
     }
     $this->debug->indent(false);
   }
@@ -346,7 +356,9 @@ class artworkManager {
     try {
       $this->cache->storeInCache($this->pathToSong, $this->artwork->getImageBlob(), $this->artworkCacheTTL);
       $this->debug->addDebugTrace('Store artwork into cache', 'last', 'now');
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+      $this->debug->addDebugTrace('Skip store artwork into cache', 'last', 'now');
+    }
   }
 
   private function getArtworkFromCache() {
@@ -365,6 +377,9 @@ class artworkManager {
       } elseif ($e->getMessage() === 'No data found in cache') {
         $this->debug->addDebugTrace('No artwork found in cache', 'last', 'now');
         $this->debug->indent(false);
+      } else {
+        $this->debug->addDebugTrace('Skip cache search', 'last', 'now');
+        $this->debug->indent(false);
       }
     }
   } 
@@ -372,7 +387,7 @@ class artworkManager {
   private function getPlaceholder() {
     if (is_file(PLACEHOLDER_PATH)) {
       $this->artwork->loadFromFile(PLACEHOLDER_PATH);
-      $this->debug->addDebugTrace('Placeholder found at : '.PLACEHOLDER_PATH, false, false);
+      $this->debug->addDebugTrace('Placeholder found at : '.PLACEHOLDER_PATH, 'last', 'now');
       throw new Exception('Paceholder found');
     }
     else {
@@ -400,19 +415,21 @@ class artworkManager {
         $this->browseSongsInFolder($this->pathToSong);
       }
       // if no artwork has been found, display a placeholder
-      $this->getPlaceholder();
+      $this->getPlaceholder(); 
     } catch (Exception $e) {
       // If artwork has been found in cache we don't write it into the cache again
       if ($e->getMessage() !== 'Artwork found in cache') {
-        $this->storeArtworkInCache();
+        $this->storeArtworkInCache(); 
       }
     }
 
-    // set the artwork image format to jpg
-    $this->artwork->setImageFormat('jpg');
+    // render the artwok
     if ($this->debug->isDebug() === false) {
       $this->artwork->displayImage();
+    } else {
+      echo "<img src='data:image/jpg;base64,".base64_encode($this->artwork->getImageBlob())."' /><br />";
     }
+    $this->debug->addDebugTrace('Render the artwork', 'last', 'now');
     
     $this->debug->addDebugTrace('Total time', 'beginning', 'end');    
     // Display the debug trace is debug mode is On
