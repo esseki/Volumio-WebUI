@@ -96,6 +96,20 @@ class cacheManager {
     $this->isCacheActivated = (extension_loaded('apc') && ini_get('apc.enabled'))? true : false;
   }
 
+  static function httpCachingHeaders ($file, $timestamp) {
+    $gmt_mtime = gmdate('r', $timestamp);
+    header('ETag: "'.md5($timestamp.$file).'"');
+    header('Last-Modified: '.$gmt_mtime);
+    header('Cache-Control: public');
+
+    if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) || isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+      if ($_SERVER['HTTP_IF_MODIFIED_SINCE'] == $gmt_mtime || str_replace('"', '', stripslashes($_SERVER['HTTP_IF_NONE_MATCH'])) == md5($timestamp.$file)) {
+        header('HTTP/1.1 304 Not Modified');
+        exit();
+      }
+    }
+  }
+
   public function disable() {
     $this->isCacheActivated = false;
   }
@@ -431,12 +445,28 @@ class artworkManager {
     }
     $this->debug->addDebugTrace('Render the artwork', 'last', 'now');
     
-    $this->debug->addDebugTrace('Total time', 'beginning', 'end');    
     // Display the debug trace is debug mode is On
+    $this->debug->addDebugTrace('Total time', 'beginning', 'end'); 
     $this->debug->displayDebugTrace();
   }
 }
 
+function caching_headers ($file, $timestamp) {
+    $gmt_mtime = gmdate('r', $timestamp);
+    header('ETag: "'.md5($timestamp.$file).'"');
+    header('Last-Modified: '.$gmt_mtime);
+    header('Cache-Control: public');
+
+    if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) || isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+        if ($_SERVER['HTTP_IF_MODIFIED_SINCE'] == $gmt_mtime || str_replace('"', '', stripslashes($_SERVER['HTTP_IF_NONE_MATCH'])) == md5($timestamp.$file)) {
+            header('HTTP/1.1 304 Not Modified');
+            exit();
+        }
+    }
+}
+
+// Handle browser caching for artwork
+cacheManager::httpCachingHeaders(__FILE__, filemtime(__FILE__));
 $am = new artworkManager();
 //$am->debug->turnOn(true);
 $mode = (isset($_GET['mode']))? $_GET['mode'] : '';
