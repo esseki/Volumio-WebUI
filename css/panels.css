@@ -342,19 +342,19 @@ a.btn-cmd {
 	-webkit-transform: rotateX(0deg) rotateY(0deg);
 	-moz-transform: rotateX(0deg) rotateY(0deg);
 	transform: rotateX(0deg) rotateY(0deg);
-    -webkit-transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
 	-moz-transform-style: preserve-3d;
 	transform-style: preserve-3d;
-    -webkit-backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 	-moz-backface-visibility: hidden;
 	backface-visibility: hidden;
-    /* -- transition is the magic sauce for animation -- */
+  /* -- transition is the magic sauce for animation -- */
 	-webkit-transition: all .6s ease-in-out;
 	transition: all .6s ease-in-out;
 }
 .artwork.flip .front {
 	z-index: 900;
-    -webkit-transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
 	-moz-transform: rotateY(180deg);
 	transform: rotateY(180deg);
 }
@@ -368,36 +368,59 @@ a.btn-cmd {
 	height: 280px;
 	border: 0px solid #000;
 	text-shadow: 1px 1px 1px rgba(0,0,0,0.6);
-    -webkit-transform: rotateY(-180deg);
+  -webkit-transform: rotateY(-180deg);
 	-moz-transform: rotateY(-179deg); /* setting to 180 causes an unnatural-looking half-flip */
 	transform: rotateY(-179deg);
-    -webkit-transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
 	-moz-transform-style: preserve-3d;
 	transform-style: preserve-3d;
-    -webkit-backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 	-moz-backface-visibility: hidden;
 	backface-visibility: hidden;
-    /* -- transition is the magic sauce for animation -- */
+  /* -- transition is the magic sauce for animation -- */
 	-webkit-transition: all .6s ease-in-out;
 	transition: all .6s ease-in-out;
 }
 .artwork.flip .back {
 	z-index: 1000;
-	 -webkit-transform: rotateX(0deg) rotateY(0deg);
-	 -moz-transform: rotateX(0deg) rotateY(0deg);
+	-webkit-transform: rotateX(0deg) rotateY(0deg);
+	-moz-transform: rotateX(0deg) rotateY(0deg);
 	transform: rotateX(0deg) rotateY(0deg);
 }
 /* -- cosmetics -- */
 .circle div {
-     border-radius: 150px;  
+  border-radius: 150px;  
 }
 div.front {
-     background-image:url('/images/artwork/placeholder.png');
-     background-size: contain; 
+  background-image:url('/images/artwork/placeholder.png');
+  background-size: contain; 
 }
 div.back {
-     background-image:url('');
-     background-size: contain; 
+  background-image:url('');
+  background-size: contain; 
+}
+/* Spinning animation while retrieving artwork */
+.loading {
+  -webkit-animation: spin 0.7s infinite linear;
+  -moz-animation: spin 0.7s infinite linear;
+  -o-animation: spin 0.7s infinite linear;
+  -ms-animation: spin 0.7s infinite linear;
+}
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg);}
+  100% { -webkit-transform: rotate(360deg);}
+}
+@-moz-keyframes spin {
+  0% { -moz-transform: rotate(0deg);}
+  100% { -moz-transform: rotate(360deg);}
+}
+@-o-keyframes spin {
+  0% { -o-transform: rotate(0deg);}
+  100% { -o-transform: rotate(360deg);}
+}
+@-ms-keyframes spin {
+  0% { -ms-transform: rotate(0deg);}
+  100% { -ms-transform: rotate(360deg);}
 }
 
 

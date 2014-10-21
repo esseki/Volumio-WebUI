@@ -435,13 +435,26 @@ function updateGUI(json){
     // render album artwork with a nice animation (only if song is changed)
     if (GUI.currentsong != json['currentsong']) {
         if ($('#currentartwork').hasClass('flip')) {
-            $("#currentartwork .front").css('background-image', 'url('+json['currentartwork']+')');
-            $('#currentartwork').removeClass('flip');
+            $("#currentartwork .back").addClass('loading');          
+        } else {
+            $("#currentartwork .front").addClass('loading')
         }
-        else {
-            $("#currentartwork .back").css('background-image', 'url('+json['currentartwork']+')');
-            $('#currentartwork').addClass('flip'); 
-        }
+        
+        // Wait for the artwork to be loaded before starting the animation
+        $('<img/>').attr('src', json['currentartwork']).on('load', function() {
+            // prevent memory leaks
+            $(this).remove(); 
+            if ($('#currentartwork').hasClass('flip')) {
+                $("#currentartwork .front").css('background-image', 'url('+json['currentartwork']+')');
+                $("#currentartwork .back").removeClass('loading');
+                $('#currentartwork').removeClass('flip');
+            }
+            else {
+                $("#currentartwork .back").css('background-image', 'url('+json['currentartwork']+')');
+                $("#currentartwork .front").removeClass('loading');
+                $('#currentartwork').addClass('flip');
+            }
+        });
     }
     if (json['repeat'] == 1) {
         $('#repeat').addClass('btn-primary');
