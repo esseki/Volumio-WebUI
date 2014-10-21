@@ -1,21 +1,5 @@
 <?php
 
-/***********************************
-
-   GET PARAMETERS ACCEPTED :
-    - mode :
-       * 'cover' : look for a 'Folder.jpg' file in the folder of the song passed to the script
-       * 'song' : look for an artwork in the metadata of the song passed to the script
-       * 'folder' : look for an artwork in the metadata of all the songs stored in the folder of the song passed to the script
-       * novalue : try 'cover', if fail then try 'song', if fail then try 'folder'
-    - cache :
-       * 'off' : don't store and restore in APC the artworks of the last songs passed to the script
-       * novalue : store and restore in APC the artworks of the last songs passed to the script
-
-  ie : http://volumio.local/artwork/music/NAS%2FMusic%20Tib%2F2080%2FThe%20Backup%20-%20EP%2FFolder.jpg?mode=folder&cache=off
-  
-***********************************/
-
 /* Dont' change anything before this line */
 define('REWRITE_RULE_IDENTIFIER', 'artwork');
 define('PATH_TO_MPD_LIBRARY', '/var/lib/mpd');
@@ -96,14 +80,14 @@ class cacheManager {
     $this->isCacheActivated = (extension_loaded('apc') && ini_get('apc.enabled'))? true : false;
   }
 
-  static function httpCachingHeaders ($file, $timestamp) {
+  static function httpCachingHeaders ($id, $timestamp) {
     $gmt_mtime = gmdate('r', $timestamp);
-    header('ETag: "'.md5($timestamp.$file).'"');
+    header('ETag: "'.md5($timestamp.$id).'"');
     header('Last-Modified: '.$gmt_mtime);
     header('Cache-Control: public');
 
     if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) || isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
-      if ($_SERVER['HTTP_IF_MODIFIED_SINCE'] == $gmt_mtime || str_replace('"', '', stripslashes($_SERVER['HTTP_IF_NONE_MATCH'])) == md5($timestamp.$file)) {
+      if ($_SERVER['HTTP_IF_MODIFIED_SINCE'] == $gmt_mtime || str_replace('"', '', stripslashes($_SERVER['HTTP_IF_NONE_MATCH'])) == md5($timestamp.$id)) {
         header('HTTP/1.1 304 Not Modified');
         exit();
       }
@@ -263,20 +247,36 @@ class artworkManager {
       // if a song is actually being played we store it
       if ($this->isASong($pathA['basename'])) {
         $this->songPlayed = $pathA['basename'];
-        $this->debug->addDebugTrace('songPlayed set to :'.$this->songPlayed, false, false);
+        $this->debug->addDebugTrace('songPlayed set to : '.$this->songPlayed, false, false);
       }
       if (is_dir($this->pathToMpdLibrary.$this->pathToSong)) {
         $this->pathToSong = $this->pathToMpdLibrary.$this->pathToSong;
-        $this->debug->addDebugTrace('pathToSong set to :'.$this->pathToSong, false, false);
+        $this->debug->addDebugTrace('pathToSong set to : '.$this->pathToSong, false, false);
       } else {
         throw new Exception('No folder found');
       }
     } 
   }
   
-  // Set the linux path to the file passed to the script (for debug purpose)
-  public function setPathToSong($path) {
-    $this->pathToSong = $path;
+  // Build a URL to retrieve an artwork from a song
+  static function buildArtworkUrl($pathTosong, $mode = null) {
+    // Add URL to the song played to retrieve artwork
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') {
+      $protocol = 'https';
+    } else {
+      $protocol = 'http';
+    }
+    
+    // will generate a URL that will search for an artwork only in the metadata of the song
+    if (!isset($mode) or $mode !== 'song') {
+      $url = rawurlencode($pathTosong).'?mode=song';
+    } 
+    // or will generate a URL that will search for an aartwork either in a "Folder.jpg" file or browsing the folder containing the song
+    else {
+      $url = rawurlencode(substr($pathTosong, 0, strripos($pathTosong, '/')).'/Folder.jpg');
+    }
+
+    return $protocol.'://'.$_SERVER['HTTP_HOST'].'/artwork/music/'.$url;
   }
 
   // Instanciate the ID3 tag manager
@@ -415,7 +415,7 @@ class artworkManager {
       $this->debug->addDebugTrace('Script bootstrap', 'beginning', 'now');
 
       // search for an artwork in cache
-      $this->getArtworkFromCache();
+      //$this->getArtworkFromCache();
       // search for a file Folder.jpg in the folder containing the song being passed to the script
       if ($this->mode === 'cover' or $this->mode === 'all') {
         $this->searchArtworkInAFolder($this->pathToSong);
@@ -436,7 +436,9 @@ class artworkManager {
         $this->storeArtworkInCache(); 
       }
     }
+  }
 
+  public function display() {
     // render the artwok
     if ($this->debug->isDebug() === false) {
       $this->artwork->displayImage();
@@ -450,16 +452,3 @@ class artworkManager {
     $this->debug->displayDebugTrace();
   }
 }
-
-
-// Handle browser caching for artwork
-cacheManager::httpCachingHeaders(__FILE__, filemtime(__FILE__));
-$am = new artworkManager();
-//$am->debug->turnOn(true);
-$mode = (isset($_GET['mode']))? $_GET['mode'] : '';
-if (isset($_GET['cache']) and $_GET['cache']==='off') {
-  $am->disableCache();
-}
-$am->setMode($mode);
-$am->process();
-

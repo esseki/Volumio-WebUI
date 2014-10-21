@@ -29,6 +29,8 @@
  
 // common include
 include('inc/connection.php');
+// artwork manager include
+include('inc/Artwork/artwork.php');
 playerSession('open',$db,'',''); 
 ?>
 
@@ -72,14 +74,6 @@ session_write_close();
 
 			$curTrack = getTrackInfo($mpd,$status['song']);
             
-            // Add URL to the song played to retrieve artwork
-            if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') {
-                $protocol = 'https';
-            } else {
-                $protocol = 'http';
-            }
-            $status['currentartwork'] = $protocol.'://'.$_SERVER['HTTP_HOST'].'/artwork/music/'.rawurlencode($curTrack[0]['file']);
-
 			if (isset($curTrack[0]['Title'])) {
 			$status['currentartist'] = $curTrack[0]['Artist'];
 			$status['currentsong'] = $curTrack[0]['Title'];
@@ -92,6 +86,8 @@ session_write_close();
 			$status['currentsong'] = $song;
 			$status['currentalbum'] = "path: ".$path;
 			}
+			// Add URL to the song played to retrieve artwork
+            $status['currentartwork'] = artworkManager::buildArtworkUrl($curTrack[0]['file']);
 		
 		// CMediaFix
 		if (isset($_SESSION['cmediafix']) && $_SESSION['cmediafix'] == 1 && $status['state'] == 'play' ) {
