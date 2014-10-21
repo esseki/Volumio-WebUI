@@ -268,7 +268,7 @@ class artworkManager {
     }
     
     // will generate a URL that will search for an artwork only in the metadata of the song
-    if (!isset($mode) or $mode !== 'song') {
+    if (isset($mode) and $mode === 'song') {
       $url = rawurlencode($pathTosong).'?mode=song';
     } 
     // or will generate a URL that will search for an aartwork either in a "Folder.jpg" file or browsing the folder containing the song
