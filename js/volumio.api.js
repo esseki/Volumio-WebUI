@@ -434,26 +434,37 @@ function updateGUI(json){
     $('#currentalbum').html(json['currentalbum']);
     // render album artwork with a nice animation (only if song is changed)
     if (GUI.currentsong != json['currentsong']) {
+        // detects the face displayed
         if ($('#currentartwork').hasClass('flip')) {
-            $("#currentartwork .back").addClass('loading');          
+            var face = 'back';
+            var oppositeFace = 'front';
+            var functionName = 'removeClass';
         } else {
-            $("#currentartwork .front").addClass('loading')
+            var face = 'front';
+            var oppositeFace = 'back';
+            var functionName = 'addClass';
         }
-        
+        $("#currentartwork ."+face).css('background-image', 'url(/images/artwork/placeholder.png)');
+        $("#currentartwork ."+face).removeClass('off');
+        $("#currentartwork ."+face).addClass('loading');
+        var start = 0;
+        var duration = 0;
+        start = new Date().getTime();
         // Wait for the artwork to be loaded before starting the animation
         $('<img/>').attr('src', json['currentartwork']).on('load', function() {
-            // prevent memory leaks
+            var elapsed = new Date().getTime() - start;
+            if (elapsed < 500) {duration = 500 - elapsed;}
+            // prevents memory leaks
             $(this).remove(); 
-            if ($('#currentartwork').hasClass('flip')) {
-                $("#currentartwork .front").css('background-image', 'url('+json['currentartwork']+')');
-                $("#currentartwork .back").removeClass('loading');
-                $('#currentartwork').removeClass('flip');
-            }
-            else {
-                $("#currentartwork .back").css('background-image', 'url('+json['currentartwork']+')');
-                $("#currentartwork .front").removeClass('loading');
-                $('#currentartwork').addClass('flip');
-            }
+            $("#currentartwork ."+oppositeFace).css('background-image', 'url('+json['currentartwork']+')');
+            // Play a minimum transition even if artwork is found from browser cache
+            window.setTimeout(function(){
+               $("#currentartwork ."+face).addClass('off').delay(100).queue(function () {
+                    $(this).removeClass('loading');
+                    $('#currentartwork')[functionName]('flip');
+                    $(this).dequeue();
+                });
+            }, duration);
         });
     }
     if (json['repeat'] == 1) {
