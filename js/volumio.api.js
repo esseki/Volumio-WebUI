@@ -451,21 +451,34 @@ function updateGUI(json){
         var duration = 0;
         start = new Date().getTime();
         // Wait for the artwork to be loaded before starting the animation
-        $('<img/>').attr('src', json['currentartwork']).on('load', function() {
+        var artworkCache = new Image();
+        artworkCache.onload = function() {
             var elapsed = new Date().getTime() - start;
             if (elapsed < 500) {duration = 500 - elapsed;}
+            
+            var colorThief = new ColorThief();
+            var artworkMainColor = colorThief.getColor(artworkCache);
+            
             // prevents memory leaks
             $(this).remove(); 
+
             $("#currentartwork ."+oppositeFace).css('background-image', 'url('+json['currentartwork']+')');
+            $("#currentartwork ."+oppositeFace).css('border-color', 'rgb('+artworkMainColor+')');
+            
             // Play a minimum transition even if artwork is found from browser cache
             window.setTimeout(function(){
                $("#currentartwork ."+face).addClass('off').delay(100).queue(function () {
                     $(this).removeClass('loading');
                     $('#currentartwork')[functionName]('flip');
+                    //$("#currentsong").css('color', 'rgb('+artworkMainColor+')');
+                    $("#twbutton").css('color', 'rgb('+artworkMainColor+')');
+                    $("#fbbutton").css('color', 'rgb('+artworkMainColor+')');
+                    $("#gbutton").css('color', 'rgb('+artworkMainColor+')');
                     $(this).dequeue();
                 });
             }, duration);
-        });
+        };
+        artworkCache.src = json['currentartwork'];
     }
     if (json['repeat'] == 1) {
         $('#repeat').addClass('btn-primary');

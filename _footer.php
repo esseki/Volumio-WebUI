@@ -60,6 +60,7 @@ if ($sezione == 'index') { ?>
 	<script src="js/bootstrap-contextmenu.js"></script>
 	<script src="js/jquery.pnotify.min.js"></script>
 	<script src="js/volumio.playback.js"></script>
+	<script src="js/color-thief.js"></script>
 <?php } else { ?>
 	<!--<script src="js/jquery.dropkick-1.0.0.js"></script>-->
 	<script src="js/custom_checkbox_and_radio.js"></script>
