@@ -239,7 +239,8 @@ class artworkManager {
   private function retrievePathToSong() {
     if (is_null($this->pathToSong)) {
       // remove the query string if any
-      $url = parse_url(rawurldecode($_SERVER["REQUEST_URI"]), PHP_URL_PATH);
+      $url = rawurldecode(parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH));
+
       // remove the rewrite rule idenitifer to retrieve the path
       $this->pathToSong = str_ireplace('/'.$this->rewriteRuleIdentifier, '', $url);
       $pathA = pathinfo($this->pathToSong);
